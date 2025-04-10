@@ -1,1 +1,169 @@
 
+# Prediction of diagnosis of Cervical Cancer using ML
+## Problem Statement
+This project aims to predict the risk of cervical cancer in individuals based on demographic information, habits, and historic medical records. The goal is to build a predictive model utilizing multiple classification models. The dataset includes features such as age, number of sexual partners, pregnancy history, smoking habits, STD records, and other demographic details. The objective is to create a robust predictive model that can identify potential indicators or risks associated with cervical cancer.
+## About this dataset
+The cervical cancer dataset contains indicators and risk factors for predicting whether a woman will get cervical cancer. The features include demographic data (such as age), lifestyle, and medical history. The data can be downloaded from the UCI Machine Learning repository and is described by Fernandes, Cardoso, and Fernandes (2017).
+
+#### Attributes
+
+ - Age in years
+ - Number of sexual partners
+ - First sexual intercourse (age in years)
+ - Number of pregnancies
+ - Smoking yes or no
+ - Smoking (in years)
+ - Hormonal contraceptives yes or no
+ - Hormonal contraceptives (in years)
+ - Intrauterine device yes or no (IUD)
+ - Number of years with an intrauterine device (IUD)
+ - Has patient ever had a sexually transmitted disease (STD) yes or no
+ - Number of STD diagnoses
+ - Time since first STD diagnosis
+ - Time since last STD diagnosis
+ - The biopsy results “Healthy” or “Cancer”. Target outcome.
+
+The biopsy serves as the gold standard for diagnosing cervical cancer.
+## Dataset attributions
+This dataset was obtained from: Kelwin Fernandes, Jaime Cardoso, Jessica Fernandes (2017). UCI Machine Learning Repository (http://archive.ics.uci.edu/ml). Irvine, CA: University of California, School of Information and Computer Science.
+## Importing Libraries and Dataset
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+import plotly.express as px
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.model_selection import train_test_split
+import xgboost as xgb
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import confusion_matrix, classification_report
+from sklearn.metrics import accuracy_score
+
+import warnings, requests, zipfile, io
+warnings.simplefilter('ignore')
+from scipy.io import arff
+f_zip = 'https://archive.ics.uci.edu/static/public/383/cervical+cancer+risk+factors.zip'
+r = requests.get(f_zip, stream=True)
+cervical_zip = zipfile.ZipFile(io.BytesIO(r.content))
+cervical_zip.extractall()
+cancer_df = pd.read_csv('risk_factors_cervical_cancer.csv')
+cancer_df.head()
+## Exploring the data
+cancer_df.shape
+cancer_df.columns.values
+We can see the 36 features, and the target column is named **Biopsy**.
+cancer_df.info()
+Fom the data, we can see that there are lot of '?'. 
+
+We are going to replace the '?' values with NaN so we can work on them later either by dropping them or replacing them with other values.
+cancer_df = cancer_df.replace('?', np.nan)
+We observed that there are a lot of NaN values in 'STDs: Time since first diagnosis' and 'STDs: Time since last diagnosis'. 
+
+So we dropped those columns.
+cancer_df = cancer_df.drop(['STDs:cervical condylomatosis','STDs:AIDS','STDs: Time since first diagnosis', 'STDs: Time since last diagnosis', 'Hinselmann', 'Schiller', 'Citology'], axis=1)
+Converting the column data types, from object to numeric in order to perform Statistical Analysis of the Data
+cancer_df = cancer_df.apply(pd.to_numeric)
+cancer_df.info()
+As there are a lot of NULL/NaN values, we are going to replace those with zero
+cancer_df =  cancer_df.fillna(0)
+cancer_df.describe()
+We will check the Correlation between the attributes in our dataset
+corr_matrix = cancer_df.corr()
+corr_matrix
+Plotted the Heatmap for the correlation matrix
+plt.figure(figsize = (30,30))
+sns.heatmap(corr_matrix, annot=True)
+plt.xticks(rotation=90)
+plt.yticks(rotation=360)
+plt.tick_params(labelsize=8)
+plt.show()
+## Preparing the data
+'Biopsy' is our target column. We are going to start scaling our data for model training
+target_df = cancer_df['Biopsy']
+input_df = cancer_df.drop(['Biopsy'], axis=1)
+X = np.array(input_df).astype('float32')
+y = np.array(target_df).astype('float32')
+
+y = y.reshape(-1,1)
+scaler = StandardScaler()
+X = scaler.fit_transform(X)
+X
+## Training the model
+We will start by splitting the dataset into two datasets using train_test_split function from the scikit-learn library. We will use one dataset for training, and we will split the other dataset again for use with validation and testing.
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, stratify=y)
+X_test, X_val, y_test, y_val = train_test_split(X_test, y_test, test_size = 0.5, stratify=y_test)
+## XGBoost Model
+model_xgb = xgb.XGBClassifier(learning_rate = 0.1, max_depth = 150, n_estimators = 200)
+model_xgb.fit(X_train, y_train)
+result_train = model_xgb.score(X_train, y_train)
+result_train
+result_test = model_xgb.score(X_test, y_test)
+result_test
+y_predict = model_xgb.predict(X_test)
+print(classification_report(y_test, y_predict))
+cm = confusion_matrix(y_predict, y_test)
+sns.heatmap(cm, annot = True)
+plt.show()
+## Decision Tree
+model_decision_tree = DecisionTreeClassifier(max_depth=100)
+model_decision_tree.fit(X_train, y_train)
+result_train = model_decision_tree.score(X_train, y_train)
+result_train
+result_test = model_decision_tree.score(X_test, y_test)
+result_test
+y_predict = model_decision_tree.predict(X_test)
+print(classification_report(y_test, y_predict))
+cm = confusion_matrix(y_predict, y_test)
+sns.heatmap(cm, annot = True)
+plt.show()
+## Random Forest
+model_random_forest = RandomForestClassifier(n_estimators=100, max_depth=50)
+model_random_forest.fit(X_train, y_train)
+result_train = model_random_forest.score(X_train, y_train)
+result_train
+result_test = model_random_forest.score(X_test, y_test)
+result_test
+y_predict = model_random_forest.predict(X_test)
+print(classification_report(y_test, y_predict))
+cm = confusion_matrix(y_predict, y_test)
+sns.heatmap(cm, annot = True)
+plt.show()
+## Support Vector Machine
+model_svm = SVC(kernel='rbf', C=1.0, gamma='scale')
+model_svm.fit(X_train, y_train)
+result_train = model_svm.score(X_train, y_train)
+result_train
+result_test = model_svm.score(X_test, y_test)
+result_test
+y_predict = model_svm.predict(X_test)
+print(classification_report(y_test, y_predict))
+cm = confusion_matrix(y_predict, y_test)
+sns.heatmap(cm, annot = True)
+plt.show()
+## K-Nearest Neighbors
+model_knn = KNeighborsClassifier(n_neighbors=5)
+model_knn.fit(X_train, y_train)
+result_train = model_knn.score(X_train, y_train)
+result_train
+result_test = model_knn.score(X_test, y_test)
+result_test
+y_predict = model_knn.predict(X_test)
+print(classification_report(y_test, y_predict))
+cm = confusion_matrix(y_predict, y_test)
+sns.heatmap(cm, annot = True)
+plt.show()
+models = [model_xgb, model_decision_tree, model_random_forest, model_svm, model_knn]
+model_names = ['XGBoost', 'Decision Tree', 'Random Forest', 'SVM', 'KNN']
+accuracies = []
+
+for model in models:
+    y_pred = model.predict(X_test)
+    accuracy = accuracy_score(y_test, y_pred)
+    accuracies.append(accuracy)
+
+accuracy_df = pd.DataFrame({'Model': model_names, 'Accuracy': accuracies})
+accuracy_df
+
