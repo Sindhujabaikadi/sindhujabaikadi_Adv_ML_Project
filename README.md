@@ -1,5 +1,4 @@
-# sindhujabaikadi_Adv_ML_Project
-Prediction of diagnosis of Cervical Cancer  using ML
+# Prediction of diagnosis of Cervical Cancer  using ML
  Cervical cancer poses a significant global health challenge, profoundly impacting the lives of
  women and their families [1]. This malignancy originates in the cervix, the lower part of the
  uterus that connects to the vagina, primarily as a result of persistent infection with specific
